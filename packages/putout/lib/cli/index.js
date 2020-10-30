@@ -8,6 +8,7 @@ const {isCI} = require('ci-info');
 
 const merge = require('../merge');
 const processFile = require('./process-file');
+const {runProcessors} = require('./processor');
 const getFiles = require('./get-files');
 const cacheFiles = require('./cache-files');
 const supportedFiles = require('./supported-files');
@@ -192,16 +193,24 @@ module.exports = async ({argv, halt, log, write, logError, readFile, writeFile})
         const resolvedName = resolve(name)
             .replace(/^\./, cwd);
         
-        const source = await readFile(resolvedName, 'utf8');
-        const {places, code} = await process({
+        const rawSource = await readFile(resolvedName, 'utf8');
+        const {
+            isProcessed,
+            places,
+            processedSource,
+        } = await runProcessors({
             name: resolvedName,
-            source,
+            process,
+            rawSource,
             index,
             length,
         });
         
-        if (fix && source !== code)
-            await writeFile(name, code);
+        if (!isProcessed)
+            throw Error(`No processors found for ${name}`);
+        
+        if (fix && rawSource !== processedSource)
+            await writeFile(name, processedSource);
         
         rawPlaces.push(places);
     }

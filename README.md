@@ -76,7 +76,7 @@ putout lib test --fix
 `Putout` supports next `environment variables`:
 - `PUTOUT_FILES` - files that should be processed by putout, divided by ",";
 
-```js
+```
 PUTOUT_FILES=lib,test putout --fix
 ```
 
@@ -126,10 +126,10 @@ putout(source, {
     ]
 });
 // returns
-{
-  code: "\n    const hello = 'world';\n\n    console.log(hello);\n",
-  places: []
-}
+({
+  "code": "\n    const hello = 'world';\n\n    console.log(hello);\n",
+  "places": []
+})
 ```
 
 As you see `places` is empty, but the code is changed: there is no `hi` variable.
@@ -147,7 +147,7 @@ putout(source, {
     ]
 });
 // returns
-{
+({
   code: '\n' +
     "    const hello = 'world';\n" +
     "    const hi = 'there';\n" +
@@ -160,7 +160,7 @@ putout(source, {
       position: { line: 3, column: 10 }
     }
   ]
-}
+})
 ```
 
 ## Built-in transforms
@@ -1238,9 +1238,9 @@ Let's consider simplest possible plugin for removing `debugger statements` [@put
 module.exports.report = () => 'Unexpected "debugger" statement';
 
 // lets find all "debugger" statements and replace them with ""
-module.exports.replace = () => {
+module.exports.replace = () => ({
     'debugger': '',
-};
+});
 ```
 
 `Visitor` used in `traverse function` can be code template as well. So when you need to find `module.exports = <something>`, you
@@ -1488,7 +1488,7 @@ ESLINT_CONFIG_FILE=test.eslintrc.json putout --fix lib
 
 You can even use only `eslint`, because `putout` bundled to `eslint-plugin-putout` with:
 
-```js
+```
 eslint --fix lib
 ```
 

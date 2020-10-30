@@ -50,7 +50,7 @@ function getOptions({noConfig, plugins, name, transform, rulesdir}) {
     };
 }
 
-module.exports = ({write, fix, debug, transform, fileCache, fixCount, rulesdir, format, isFlow, isJSX, ruler, logError, raw, exit, noConfig, plugins = []}) => async ({name, source, index, length}) => {
+module.exports = ({write, fix, debug, transform, fileCache, fixCount, rulesdir, format, isFlow, isJSX, ruler, logError, raw, exit, noConfig, plugins = []}) => async ({name, source, rawSource, index, length, startLine}) => {
     const options = getOptions({
         name,
         rulesdir,
@@ -98,7 +98,7 @@ module.exports = ({write, fix, debug, transform, fileCache, fixCount, rulesdir, 
         write(line);
         
         return {
-            places,
+            places: formatPlaces(startLine, places),
             code: source,
         };
     }
@@ -124,7 +124,7 @@ module.exports = ({write, fix, debug, transform, fileCache, fixCount, rulesdir, 
     
     if (ruler.disable || ruler.enable || ruler.disableAll || ruler.enableAll)
         return {
-            places: allPlaces,
+            places: formatPlaces(startLine, allPlaces),
             code,
         };
     
@@ -136,10 +136,11 @@ module.exports = ({write, fix, debug, transform, fileCache, fixCount, rulesdir, 
     
     allPlaces.push(...newPlaces);
     
+    const formatedPlaces = formatPlaces(startLine, allPlaces);
     const fixable = !newPlaces.filter(isParsingError).length;
     
     if (fixable)
-        fileCache.setInfo(name, allPlaces, options);
+        fileCache.setInfo(name, formatedPlaces, options);
     
     if (fix && source !== newCode)
         fileCache.removeEntry(name);
@@ -150,8 +151,8 @@ module.exports = ({write, fix, debug, transform, fileCache, fixCount, rulesdir, 
         currentFormat,
         formatterOptions,
         name,
-        source,
-        places: allPlaces,
+        source: rawSource,
+        places: formatedPlaces,
         index,
         count: length,
     });
@@ -159,7 +160,7 @@ module.exports = ({write, fix, debug, transform, fileCache, fixCount, rulesdir, 
     write(line || '');
     
     return {
-        places: allPlaces,
+        places: formatedPlaces,
         code: newCode,
     };
 };
@@ -181,3 +182,21 @@ async function makeReport(e, {debug, formatterOptions, report, currentFormat, na
         source,
     });
 }
+
+function formatPlaces(line, places) {
+    const newPlaces = [];
+    
+    for (const place of places) {
+        const {position} = place;
+        newPlaces.push({
+            ...place,
+            position: {
+                ...position,
+                line: line + position.line,
+            }
+        });
+    }
+    
+    return newPlaces;
+}
+
