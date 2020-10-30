@@ -4,8 +4,9 @@ const {extname} = require('path');
 
 //const jsProcessor = require('./process-js');
 const mdProcessor = require('./process-markdown');
+const extensions = require('../../../extensions');
 
-module.exports.runProcessors = async ({name, process, rawSource, index, length}) => {
+module.exports.runProcessors = async ({name, process, options, rawSource, index, length}) => {
     const ext = extname(name).slice(1);
     const processors = [
         jsProcessor(),
@@ -28,6 +29,7 @@ module.exports.runProcessors = async ({name, process, rawSource, index, length})
                 name,
                 source,
                 rawSource,
+                options,
                 index,
                 length,
                 startLine,
@@ -50,16 +52,16 @@ module.exports.runProcessors = async ({name, process, rawSource, index, length})
 
 function jsProcessor() {
     return {
-        extensions: require('putout/extensions'),
+        extensions,
         preProcess: (source) => {
             return [{
                 source,
                 startLine: 0,
-            }]
+            }];
         },
-        postProcess: (source) => {
-            return source;
-        }
-    }
+        postProcess: (source, list) => {
+            return list[0];
+        },
+    };
 }
 

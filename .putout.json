@@ -1,13 +1,4 @@
 {
-    "match": {
-        ".md": {
-            "strict-mode": "off",
-            "remove-unused-variables": "off",
-            "remove-unused-expressions": "off",
-            "putout": "off",
-            "remove-console": "off"
-        }
-    },
     "rules": {
         "putout": "on"
     }

@@ -1,10 +1,5 @@
 {
     "match": {
-        "*.md": {
-            "remove-unused-expressions": "off",
-            "remove-unused-variables": "off",
-            "strict-mode": "off"
-        },
         "test/putout.js": {
             "apply-shorthand-properties": [{
                 "ignore": "plugin"

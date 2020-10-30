@@ -7,14 +7,21 @@ module.exports = (name, match) => {
     if (!match || !name)
         return {};
     
-    const rules = {};
+    let rules = {};
     const items = keys(match);
     
     for (const item of items) {
         const pattern = parseSep(item);
         
-        if (RegExp(pattern).test(name))
+        if (RegExp(pattern).test(name)) {
+            const current = match[item];
+            if (current === 'off') {
+                rules = null;
+                continue;
+            }
+            
             assign(rules, match[item]);
+        }
     }
     
     return {

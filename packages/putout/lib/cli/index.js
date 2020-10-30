@@ -5,13 +5,19 @@ const {resolve} = require('path');
 const {red} = require('chalk');
 const yargsParser = require('yargs-parser');
 const {isCI} = require('ci-info');
+const memo = require('nano-memoize');
 
 const merge = require('../merge');
 const processFile = require('./process-file');
+const makeReport = require('./make-report');
 const {runProcessors} = require('./processor');
 const getFiles = require('./get-files');
 const cacheFiles = require('./cache-files');
 const supportedFiles = require('./supported-files');
+const getFormatter = memo(require('./formatter').getFormatter);
+const getOptions = require('./get-options');
+const report = require('./report')();
+
 const {
     PLACE,
     STAGE,
@@ -161,8 +167,6 @@ module.exports = async ({argv, halt, log, write, logError, readFile, writeFile})
         debug,
         fix,
         fileCache,
-        rulesdir,
-        format,
         isFlow,
         isJSX,
         fixCount,
@@ -174,15 +178,14 @@ module.exports = async ({argv, halt, log, write, logError, readFile, writeFile})
             enableAll,
         },
         
-        exit,
         log,
         logError,
         write,
         transform,
-        noConfig: !args.config,
         plugins: args.plugins,
     };
     
+    const noConfig = !args.config;
     const rawPlaces = [];
     
     const process = processFile(options);
@@ -193,6 +196,19 @@ module.exports = async ({argv, halt, log, write, logError, readFile, writeFile})
         const resolvedName = resolve(name)
             .replace(/^\./, cwd);
         
+        const options = getOptions({
+            name: resolvedName,
+            rulesdir,
+            noConfig,
+            transform,
+            plugins,
+        });
+    
+        const isParsingError = ({rule}) => rule === 'eslint/null';
+    
+        const {formatter} = options;
+        const [currentFormat, formatterOptions] = getFormatter(format || formatter, exit);
+        
         const rawSource = await readFile(resolvedName, 'utf8');
         const {
             isProcessed,
@@ -201,16 +217,38 @@ module.exports = async ({argv, halt, log, write, logError, readFile, writeFile})
         } = await runProcessors({
             name: resolvedName,
             process,
+            options,
             rawSource,
             index,
             length,
         });
         
+        const line = await makeReport(e, {
+            debug,
+            report,
+            currentFormat,
+            formatterOptions,
+            name,
+            source: rawSource,
+            places,
+            index,
+            count: length,
+        });
+        
+        write(line || '');
+        
         if (!isProcessed)
             throw Error(`No processors found for ${name}`);
         
-        if (fix && rawSource !== processedSource)
+        if (fix && rawSource !== processedSource) {
+            fileCache.removeEntry(name);
             await writeFile(name, processedSource);
+        }
+    
+        const fixable = !places.filter(isParsingError).length;
+    
+        if (fixable)
+            fileCache.setInfo(name, places, options);
         
         rawPlaces.push(places);
     }
